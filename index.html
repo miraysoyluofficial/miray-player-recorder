@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=16" />
+    <link rel="stylesheet" href="style.css?v=18" />
     <title>Miray Player Recorder</title>
   </head>
   <body>
@@ -49,16 +49,13 @@
           </div>
 
           <div class="controls" aria-label="Müzik kontrolleri">
-            <button class="icon-button" id="prevBtn" type="button" aria-label="Önceki şarkı">‹</button>
             <button class="play-button" id="playPauseBtn" type="button" aria-label="Oynat">▶</button>
-            <button class="icon-button" id="nextBtn" type="button" aria-label="Sonraki şarkı">›</button>
           </div>
 
           <div class="player-tools" aria-label="Player araçları">
             <button class="tool-button" id="speedDownBtn" type="button" aria-label="Yavaşlat">−</button>
             <div class="speed-readout" id="speedLabel">1.00x</div>
             <button class="tool-button" id="speedUpBtn" type="button" aria-label="Hızlandır">＋</button>
-            <button class="tool-button share-current" id="shareCurrentBtn" type="button" aria-label="Şarkıyı paylaş">↗</button>
           </div>
 
           <label class="volume-control" for="volume">
@@ -198,7 +195,6 @@
         <button type="button" data-save-mark="saved">✓<span>Sakla</span></button>
       </div>
       <div class="modal-actions">
-        <button type="button" id="cancelSaveRecordingBtn">Vazgeç</button>
         <button type="button" id="confirmSaveRecordingBtn">Kaydet</button>
       </div>
     </section>
@@ -215,6 +211,6 @@
     </section>
 
     <audio id="audioPlayer" preload="none"></audio>
-    <script src="script.js?v=16"></script>
+    <script src="script.js?v=18"></script>
   </body>
 </html>
