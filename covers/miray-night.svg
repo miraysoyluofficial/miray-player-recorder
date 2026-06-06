@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-label="Miray Night kapak">
+  <defs>
+    <linearGradient id="night" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#070914"/>
+      <stop offset="0.45" stop-color="#16343a"/>
+      <stop offset="1" stop-color="#47203f"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" x2="1">
+      <stop stop-color="#33a2ff"/>
+      <stop offset="1" stop-color="#ff314f"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="600" rx="54" fill="url(#night)"/>
+  <path d="M118 394c70-104 126-104 196 0s126 104 196 0" fill="none" stroke="#62e6c5" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="300" cy="260" r="150" fill="none" stroke="url(#ring)" stroke-width="26"/>
+  <circle cx="300" cy="260" r="50" fill="#08090f" stroke="#ffffff" stroke-opacity="0.36" stroke-width="9"/>
+  <path d="M380 136v194c0 36-30 66-67 66s-67-30-67-66 30-66 67-66c15 0 29 5 41 13V136h26z" fill="#f6f7fb"/>
+  <text x="300" y="512" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="800" fill="#f6f7fb">MIRAY NIGHT</text>
+</svg>
