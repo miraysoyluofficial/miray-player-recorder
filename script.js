@@ -57,6 +57,10 @@ const durationLabel = document.querySelector("#duration");
 const playPauseBtn = document.querySelector("#playPauseBtn");
 const prevBtn = document.querySelector("#prevBtn");
 const nextBtn = document.querySelector("#nextBtn");
+const speedDownBtn = document.querySelector("#speedDownBtn");
+const speedUpBtn = document.querySelector("#speedUpBtn");
+const speedLabel = document.querySelector("#speedLabel");
+const shareCurrentBtn = document.querySelector("#shareCurrentBtn");
 const volume = document.querySelector("#volume");
 const trackList = document.querySelector("#trackList");
 const recordBtn = document.querySelector("#recordBtn");
@@ -115,6 +119,7 @@ let recordingStartedAt = 0;
 let appendTargetId = null;
 let timerInterval;
 let hasTriedToPlay = false;
+let playbackRate = 1;
 let activeCategory = "all";
 let activeScreen = "player";
 let searchTerm = "";
@@ -140,6 +145,9 @@ let selectedRecordingMimeType = "audio/webm";
 let pendingRecordingSave = null;
 let preparedZipArchive = null;
 let crcTable;
+let toastTimeout;
+
+const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -217,6 +225,25 @@ function sanitizeFileName(value) {
     .slice(0, 90) || "recording";
 }
 
+function updatePlaybackRate(nextRate) {
+  const safeRate = Math.min(2, Math.max(0.5, Number(nextRate) || 1));
+  playbackRate = safeRate;
+  audioPlayer.playbackRate = playbackRate;
+  speedLabel.textContent = `${playbackRate.toFixed(2)}x`;
+  speedDownBtn.disabled = playbackRate <= PLAYBACK_RATES[0];
+  speedUpBtn.disabled = playbackRate >= PLAYBACK_RATES[PLAYBACK_RATES.length - 1];
+}
+
+function stepPlaybackRate(direction) {
+  const currentIndex = PLAYBACK_RATES.findIndex((rate) => Math.abs(rate - playbackRate) < 0.01);
+  const fallbackIndex = PLAYBACK_RATES.indexOf(1);
+  const nextIndex = Math.min(
+    PLAYBACK_RATES.length - 1,
+    Math.max(0, (currentIndex === -1 ? fallbackIndex : currentIndex) + direction)
+  );
+  updatePlaybackRate(PLAYBACK_RATES[nextIndex]);
+}
+
 function getCrcTable() {
   if (crcTable) return crcTable;
   crcTable = new Uint32Array(256);
@@ -261,6 +288,7 @@ function writeUint32(view, offset, value) {
 function showMessage(text, isError = false) {
   message.textContent = text;
   message.classList.toggle("error", isError);
+  showToast(text, isError);
   if (isError) console.error(text);
 }
 
@@ -294,6 +322,23 @@ function readJsonStorage(key, fallback) {
 
 function writeJsonStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function showToast(text, isError = false) {
+  let toast = document.querySelector("#toastMessage");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toastMessage";
+    toast.className = "toast-message";
+    toast.setAttribute("role", "status");
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = text;
+  toast.classList.toggle("error", isError);
+  toast.classList.add("visible");
+  window.clearTimeout(toastTimeout);
+  toastTimeout = window.setTimeout(() => toast.classList.remove("visible"), isError ? 4200 : 2600);
 }
 
 function starKey(itemId, itemType) {
@@ -979,6 +1024,7 @@ async function playItem(item, queue = [item]) {
   setQueue(queue, item.id);
   updateNowPlaying(item);
   audioPlayer.src = item.url || item.src;
+  audioPlayer.playbackRate = playbackRate;
   renderTrackList();
   await playAudio();
 }
@@ -989,6 +1035,7 @@ async function playQueueItem(index) {
   currentQueueIndex = index;
   updateNowPlaying(item);
   audioPlayer.src = item.url || item.src;
+  audioPlayer.playbackRate = playbackRate;
   renderTrackList();
   await playAudio();
 }
@@ -1607,6 +1654,70 @@ async function shareRecording(recordingId) {
   await downloadRecording(recording);
 }
 
+async function getShareFileForItem(item) {
+  const title = sanitizeFileName(item.title || item.name || item.fileName || "miray-audio");
+
+  if (item.type === "recording" && item.blob) {
+    return new File([item.blob], item.fileName || `${title}.webm`, { type: item.blob.type || "audio/webm" });
+  }
+
+  if (item.type === "phone" && item.file) {
+    return new File([item.file], item.fileName || `${title}.mp3`, { type: item.file.type || "audio/mpeg" });
+  }
+
+  const sourceUrl = item.url || item.src;
+  if (!sourceUrl) return null;
+
+  const response = await fetch(sourceUrl);
+  if (!response.ok) throw new Error(`Paylaşılacak dosya alınamadı: ${response.status}`);
+  const blob = await response.blob();
+  const cleanUrl = sourceUrl.split("?")[0];
+  const extension = (cleanUrl.split(".").pop() || "mp3").slice(0, 8);
+  return new File([blob], `${title}.${extension}`, { type: blob.type || "audio/mpeg" });
+}
+
+async function shareCurrentItem() {
+  const item = currentQueue[currentQueueIndex];
+  if (!item) {
+    showMessage("Paylaşmak için önce bir şarkı, telefon müziği veya REC kaydı seç.", true);
+    return;
+  }
+
+  const title = item.title || item.name || item.fileName || "Miray Player ses dosyası";
+
+  try {
+    const file = await getShareFileForItem(item);
+    if (file && navigator.canShare?.({ files: [file] }) && navigator.share) {
+      await navigator.share({
+        title,
+        text: "Miray Player Recorder",
+        files: [file],
+      });
+      showMessage("Paylaşım ekranı açıldı.");
+      return;
+    }
+
+    if (navigator.share) {
+      await navigator.share({
+        title,
+        text: `${title} - Miray Player Recorder`,
+        url: item.type === "song" ? new URL(item.url || item.src, location.href).href : location.href,
+      });
+      showMessage("Paylaşım ekranı açıldı.");
+      return;
+    }
+
+    showMessage("Bu tarayıcı paylaşımı desteklemiyor. Dosyayı indirip paylaşabilirsin.", true);
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      showMessage("Paylaşım iptal edildi.");
+      return;
+    }
+    console.error(error);
+    showMessage("Paylaşım ekranı açılamadı. Dosyayı indirip paylaşmayı dene.", true);
+  }
+}
+
 async function createRecordingsZip(recordingItems) {
   const encoder = new TextEncoder();
   const chunks = [];
@@ -1766,6 +1877,9 @@ playPauseBtn.addEventListener("click", () => {
 
 prevBtn.addEventListener("click", playPreviousItem);
 nextBtn.addEventListener("click", playNextItem);
+speedDownBtn.addEventListener("click", () => stepPlaybackRate(-1));
+speedUpBtn.addEventListener("click", () => stepPlaybackRate(1));
+shareCurrentBtn.addEventListener("click", shareCurrentItem);
 
 audioPlayer.addEventListener("loadedmetadata", () => {
   durationLabel.textContent = formatTime(audioPlayer.duration);
@@ -1778,6 +1892,11 @@ audioPlayer.addEventListener("timeupdate", () => {
 });
 
 audioPlayer.addEventListener("ended", playNextItem);
+audioPlayer.addEventListener("ratechange", () => {
+  if (Math.abs(audioPlayer.playbackRate - playbackRate) > 0.01) {
+    updatePlaybackRate(audioPlayer.playbackRate);
+  }
+});
 audioPlayer.addEventListener("error", () => {
   if (hasTriedToPlay) showMessage("Ses dosyası bulunamadı veya açılamadı.", true);
 });
@@ -1954,6 +2073,7 @@ if ("serviceWorker" in navigator) {
 
 async function init() {
   audioPlayer.volume = volume.value;
+  updatePlaybackRate(1);
   selectedRecordingMimeType = "MediaRecorder" in window ? getSupportedRecordingMimeType() || "audio/webm" : "audio/webm";
   recordFormat.textContent = getFormatLabel(selectedRecordingMimeType);
   stars = readJsonStorage(STORAGE_KEYS.stars, {});
@@ -1979,7 +2099,7 @@ async function init() {
   renderRecordingsList();
   renderNotesScreen();
   updateAppendButton();
-  setActiveScreen("record");
+  setActiveScreen("player");
 }
 
 init();
