@@ -4,7 +4,7 @@ Mobil öncelikli, Vanilla HTML/CSS/JavaScript ile yapılmış PWA MP3 player ve 
 
 ## Proje nasıl çalıştırılır
 
-Bu proje framework gerektirmez. PWA ve mikrofon özellikleri için yerel sunucu üzerinden çalıştırın:
+Bu proje framework gerektirmez. PWA, IndexedDB ve mikrofon özellikleri için yerel sunucu üzerinden çalıştırın:
 
 ```bash
 python3 -m http.server 8080
@@ -16,44 +16,93 @@ Sonra tarayıcıda şu adresi açın:
 http://localhost:8080
 ```
 
-Telefonda test etmek için bilgisayar ve telefon aynı ağdaysa bilgisayarın yerel IP adresiyle açabilirsiniz. HTTPS olmayan uzak adreslerde mikrofon ve PWA davranışları tarayıcı tarafından kısıtlanabilir.
+## Kategori sistemi nasıl çalışır?
 
-## Telefonda ana ekrana nasıl eklenir
+Uygulamada yatay kaydırılabilir kategori barı vardır. Aktif kategori vurgulanır ve içerik alanında sadece o kategoriye ait liste görünür.
 
-Android Chrome’da siteyi açın, menüden **Ana ekrana ekle** seçeneğine dokunun. Uygulama manifest ve service worker içerdiği için standalone modda uygulama gibi açılır.
+Kategoriler:
 
-## MP3 dosyaları nasıl eklenir
+1. **Tüm Şarkılar**: `script.js` içindeki `songs` array'indeki bütün şarkıları listeler.
+2. **Telefon Müziklerim**: Telefonda seçilen ses dosyalarını listeler.
+3. **REC Kayıtlarım**: Uygulama içindeki Record tuşuyla alınan kayıtları listeler.
+4. **Kayıt Notlarım**: Şarkı, telefon müziği veya REC kayıtlarına eklenen notları gösterir.
+5. **⭐ En Beğendiklerim**: Yıldızlanan şarkı, telefon müziği ve REC kayıtlarını gösterir.
+6. **Kaydettiğim Şarkılar**: Kaydet butonuyla işaretlenen şarkıları gösterir.
+7. **Demolar**: `category: "demo"` olan şarkıları listeler.
 
-Yeni müzik eklemek için:
+Üstteki arama alanı aktif kategori içinde şarkı adı, sanatçı, kayıt adı, dosya adı, tag ve notlara göre arama yapar.
+
+## Telefonda müzik seçme nasıl yapılır?
+
+**Telefon Müziklerim** kategorisine girin ve **Telefondan müzik seç** butonuna dokunun. MP3, WAV, M4A gibi `audio/*` dosyalarını seçebilirsiniz. Destekleyen tarayıcılarda seçilen dosyalar IndexedDB içinde saklanır. Tarayıcı saklayamazsa uygulama “Telefon müziklerini tekrar seçmen gerekebilir” mesajı gösterir.
+
+## MP3 dosyaları nasıl eklenir?
+
+Yeni gömülü müzik eklemek için:
 
 1. MP3 dosyasını `/music` klasörüne koy.
 2. Kapak görselini `/covers` klasörüne koy.
-3. `script.js` içindeki `songs` array’e `title`, `artist`, `src` ve `cover` bilgilerini ekle.
+3. `script.js` içindeki `songs` array'e `id`, `title`, `artist`, `src`, `cover`, `category`, `tags`, `isStarred`, `isSaved`, `playCount`, `dateAdded` ve `notes` bilgilerini ekle.
 4. Sayfayı yenile.
 
-`songs` array içinde kullanılacak örnek şarkı objesi:
+Örnek:
 
 ```js
 {
-  title: "Demo Song",
+  id: "song-003",
+  title: "Yeni Demo",
   artist: "Miray Soylu",
-  src: "music/demo.mp3",
-  cover: "covers/demo.jpg"
+  src: "music/yeni-demo.mp3",
+  cover: "covers/yeni-demo.jpg",
+  category: "demo",
+  tags: ["demo", "vocal"],
+  isStarred: false,
+  isSaved: false,
+  playCount: 0,
+  dateAdded: "2026-06-06",
+  notes: []
 }
 ```
 
-Demo listede `music/demo.mp3` ve `music/miray-night.mp3` bulunur. Kendi MP3 dosyalarınızı bu adlarla değiştirebilir veya array içine yeni objeler ekleyebilirsiniz.
+## REC kayıtları nasıl oluşturulur?
 
-## Kayıtlar nasıl indirilir
+Record tuşuna dokunun, mikrofon iznini verin ve Stop ile kaydı bitirin. Kayıt `audio/webm` Blob olarak oluşturulur ve IndexedDB içinde saklanır.
 
-Record tuşuna dokunun, mikrofon iznini verin ve Stop ile kaydı bitirin. Kayıtlar IndexedDB içinde saklanır ve **Kayıtlarım** bölümünde kalıcı olarak görünür.
+## REC kayıtları nasıl isimlendirilir?
 
-Her kaydın yanında **Telefona indir** butonu vardır. Tarayıcı destekliyorsa File System Access API klasör seçtirir. Desteklenmiyorsa normal dosya indirme yöntemi kullanılır.
+Stop sonrası uygulama kayda isim vermenizi ister. Boş bırakırsanız otomatik isim oluşturur:
 
-## Tarayıcı kısıtları nelerdir
+```text
+REC Kaydı - YYYY-MM-DD HH:mm
+```
 
-- `MediaRecorder` ve mikrofon erişimi gerekir.
-- Mikrofon erişimi genelde HTTPS veya `localhost` üzerinde çalışır.
-- iOS Safari’de MediaRecorder, PWA ve indirme davranışları sürüme göre değişebilir.
-- File System Access API çoğunlukla Chromium tabanlı tarayıcılarda bulunur.
-- IndexedDB temizlenirse uygulama içindeki kayıt arşivi de silinebilir.
+REC kayıt kartındaki **Adlandır** butonuyla kayıt adı sonradan değiştirilebilir. Yeni isim IndexedDB'de saklanır ve sayfa yenilenince kaybolmaz.
+
+## Yıldızlı “En Beğendiklerim” sistemi nasıl çalışır?
+
+Şarkı, telefon müziği veya REC kaydı üzerindeki yıldız butonuna dokununca içerik **⭐ En Beğendiklerim** kategorisine eklenir. Yıldızı kaldırınca bu kategoriden çıkar. Yıldız bilgisi localStorage içinde saklanır.
+
+## Kaydettiğim Şarkılar nasıl çalışır?
+
+Tüm Şarkılar veya Demolar içinde bir şarkıdaki **Kaydet** butonuna dokunun. Şarkı **Kaydettiğim Şarkılar** kategorisinde görünür. Tekrar dokunarak kaydedilenlerden çıkarabilirsiniz.
+
+## Şarkı veya kayda not nasıl eklenir?
+
+Şarkı, telefon müziği veya REC kaydı kartındaki **Not ekle** butonuna dokunun. Not başlığı ve metni girin. Notlar **Kayıt Notlarım** kategorisinde listelenir. Notlar düzenlenebilir ve silinebilir. Notlar localStorage içinde saklanır.
+
+## Demo şarkılar nasıl eklenir?
+
+`songs` array içindeki bir şarkının `category` değerini `"demo"` yapın. İsterseniz `tags` içine `"demo"` da ekleyin. Bu şarkı **Demolar** kategorisinde görünür ve kartında küçük **Demo** etiketi çıkar.
+
+## Mobilde ana ekrana nasıl eklenir?
+
+Android Chrome'da yayınlanmış HTTPS linkini açın. Sağ üst menüden **Ana ekrana ekle** veya **Uygulamayı yükle** seçeneğine dokunun. Uygulama `manifest.json` ve service worker sayesinde standalone modda açılır.
+
+## Tarayıcı kısıtları nelerdir?
+
+- Mikrofon kaydı için `MediaRecorder`, `getUserMedia` ve genelde HTTPS gerekir.
+- `localhost` geliştirme için güvenli kabul edilir.
+- iOS Safari'de MediaRecorder, IndexedDB ve PWA davranışları sürüme göre değişebilir.
+- File System Access API her tarayıcıda yoktur; desteklenmezse normal indirme fallback'i çalışır.
+- IndexedDB veya tarayıcı site verileri temizlenirse REC kayıtları ve telefon müzikleri silinebilir.
+- localStorage temizlenirse yıldızlar, kaydedilen şarkılar ve notlar silinebilir.

@@ -51,7 +51,7 @@
             <input id="volume" type="range" min="0" max="1" value="0.8" step="0.01" />
           </label>
 
-          <div class="track-list" id="trackList" aria-label="Şarkı listesi"></div>
+          <div class="track-list" id="trackList" aria-label="Aktif oynatma listesi"></div>
         </section>
 
         <section class="card recorder-card" aria-labelledby="recorderTitle">
@@ -71,15 +71,23 @@
           <p class="message" id="message" role="status" aria-live="polite">Kayıt için Record tuşuna dokun.</p>
         </section>
 
-        <section class="card archive-card" aria-labelledby="archiveTitle">
+        <section class="card library-card" aria-labelledby="libraryTitle">
           <div class="card-heading">
             <div>
-              <p class="section-label">Arşiv</p>
-              <h2 id="archiveTitle">Kayıtlarım</h2>
+              <p class="section-label">Kütüphane</p>
+              <h2 id="libraryTitle">Tüm Şarkılar</h2>
             </div>
-            <span class="count-badge" id="recordingCount">0</span>
+            <span class="count-badge" id="categoryCount">0</span>
           </div>
-          <div class="recordings-list" id="recordingsList"></div>
+
+          <label class="search-control" for="searchInput">
+            <span>Arama</span>
+            <input id="searchInput" type="search" placeholder="Şarkı, kayıt, not, tag ara..." autocomplete="off" />
+          </label>
+
+          <nav class="category-bar" id="categoryBar" aria-label="Kategoriler"></nav>
+
+          <div class="category-content" id="categoryContent"></div>
         </section>
       </main>
     </div>
