@@ -55,12 +55,9 @@ const progress = document.querySelector("#progress");
 const currentTimeLabel = document.querySelector("#currentTime");
 const durationLabel = document.querySelector("#duration");
 const playPauseBtn = document.querySelector("#playPauseBtn");
-const prevBtn = document.querySelector("#prevBtn");
-const nextBtn = document.querySelector("#nextBtn");
 const speedDownBtn = document.querySelector("#speedDownBtn");
 const speedUpBtn = document.querySelector("#speedUpBtn");
 const speedLabel = document.querySelector("#speedLabel");
-const shareCurrentBtn = document.querySelector("#shareCurrentBtn");
 const volume = document.querySelector("#volume");
 const trackList = document.querySelector("#trackList");
 const recordBtn = document.querySelector("#recordBtn");
@@ -103,7 +100,6 @@ const saveRecordingBackdrop = document.querySelector("#saveRecordingBackdrop");
 const saveRecordingModal = document.querySelector("#saveRecordingModal");
 const recordingNameInput = document.querySelector("#recordingNameInput");
 const confirmSaveRecordingBtn = document.querySelector("#confirmSaveRecordingBtn");
-const cancelSaveRecordingBtn = document.querySelector("#cancelSaveRecordingBtn");
 const zipExportBackdrop = document.querySelector("#zipExportBackdrop");
 const zipExportModal = document.querySelector("#zipExportModal");
 const zipExportInfo = document.querySelector("#zipExportInfo");
@@ -1654,70 +1650,6 @@ async function shareRecording(recordingId) {
   await downloadRecording(recording);
 }
 
-async function getShareFileForItem(item) {
-  const title = sanitizeFileName(item.title || item.name || item.fileName || "miray-audio");
-
-  if (item.type === "recording" && item.blob) {
-    return new File([item.blob], item.fileName || `${title}.webm`, { type: item.blob.type || "audio/webm" });
-  }
-
-  if (item.type === "phone" && item.file) {
-    return new File([item.file], item.fileName || `${title}.mp3`, { type: item.file.type || "audio/mpeg" });
-  }
-
-  const sourceUrl = item.url || item.src;
-  if (!sourceUrl) return null;
-
-  const response = await fetch(sourceUrl);
-  if (!response.ok) throw new Error(`Paylaşılacak dosya alınamadı: ${response.status}`);
-  const blob = await response.blob();
-  const cleanUrl = sourceUrl.split("?")[0];
-  const extension = (cleanUrl.split(".").pop() || "mp3").slice(0, 8);
-  return new File([blob], `${title}.${extension}`, { type: blob.type || "audio/mpeg" });
-}
-
-async function shareCurrentItem() {
-  const item = currentQueue[currentQueueIndex];
-  if (!item) {
-    showMessage("Paylaşmak için önce bir şarkı, telefon müziği veya REC kaydı seç.", true);
-    return;
-  }
-
-  const title = item.title || item.name || item.fileName || "Miray Player ses dosyası";
-
-  try {
-    const file = await getShareFileForItem(item);
-    if (file && navigator.canShare?.({ files: [file] }) && navigator.share) {
-      await navigator.share({
-        title,
-        text: "Miray Player Recorder",
-        files: [file],
-      });
-      showMessage("Paylaşım ekranı açıldı.");
-      return;
-    }
-
-    if (navigator.share) {
-      await navigator.share({
-        title,
-        text: `${title} - Miray Player Recorder`,
-        url: item.type === "song" ? new URL(item.url || item.src, location.href).href : location.href,
-      });
-      showMessage("Paylaşım ekranı açıldı.");
-      return;
-    }
-
-    showMessage("Bu tarayıcı paylaşımı desteklemiyor. Dosyayı indirip paylaşabilirsin.", true);
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      showMessage("Paylaşım iptal edildi.");
-      return;
-    }
-    console.error(error);
-    showMessage("Paylaşım ekranı açılamadı. Dosyayı indirip paylaşmayı dene.", true);
-  }
-}
-
 async function createRecordingsZip(recordingItems) {
   const encoder = new TextEncoder();
   const chunks = [];
@@ -1875,11 +1807,8 @@ playPauseBtn.addEventListener("click", () => {
   else pauseAudio();
 });
 
-prevBtn.addEventListener("click", playPreviousItem);
-nextBtn.addEventListener("click", playNextItem);
 speedDownBtn.addEventListener("click", () => stepPlaybackRate(-1));
 speedUpBtn.addEventListener("click", () => stepPlaybackRate(1));
-shareCurrentBtn.addEventListener("click", shareCurrentItem);
 
 audioPlayer.addEventListener("loadedmetadata", () => {
   durationLabel.textContent = formatTime(audioPlayer.duration);
@@ -2040,14 +1969,14 @@ saveRecordingModal.querySelectorAll("[data-save-mark]").forEach((button) => {
 });
 
 confirmSaveRecordingBtn.addEventListener("click", savePendingRecording);
-cancelSaveRecordingBtn.addEventListener("click", () => {
-  pendingRecordingSave = null;
-  closeSaveRecordingModal();
-  showMessage("Kayıt kaydedilmedi.");
+
+recordingNameInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") savePendingRecording();
 });
+
 saveRecordingBackdrop.addEventListener("click", () => {
-  pendingRecordingSave = null;
-  closeSaveRecordingModal();
+  recordingNameInput.focus();
+  showMessage("Kaydı korumak için Kaydet'e dokun.", false);
 });
 
 shareZipBtn.addEventListener("click", sharePreparedZip);
