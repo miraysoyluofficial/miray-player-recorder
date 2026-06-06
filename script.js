@@ -89,6 +89,10 @@ const trackList = document.querySelector("#trackList");
 const recordBtn = document.querySelector("#recordBtn");
 const stopBtn = document.querySelector("#stopBtn");
 const recordTimer = document.querySelector("#recordTimer");
+const recordBigTime = document.querySelector("#recordBigTime");
+const recordSize = document.querySelector("#recordSize");
+const recordFormat = document.querySelector("#recordFormat");
+const waveDisplay = document.querySelector("#waveDisplay");
 const message = document.querySelector("#message");
 const installStatus = document.querySelector("#installStatus");
 const categoryBar = document.querySelector("#categoryBar");
@@ -96,6 +100,26 @@ const categoryContent = document.querySelector("#categoryContent");
 const categoryCount = document.querySelector("#categoryCount");
 const libraryTitle = document.querySelector("#libraryTitle");
 const searchInput = document.querySelector("#searchInput");
+const appScreenTitle = document.querySelector("#appScreenTitle");
+const bottomNav = document.querySelector(".bottom-nav");
+const screenPanels = document.querySelectorAll(".screen-panel");
+const recordingListView = document.querySelector("#recordingListView");
+const listTitle = document.querySelector("#listTitle");
+const recordingSearchInput = document.querySelector("#recordingSearchInput");
+const toggleListSearchBtn = document.querySelector("#toggleListSearchBtn");
+const selectionModeBtn = document.querySelector("#selectionModeBtn");
+const sortMenuBtn = document.querySelector("#sortMenuBtn");
+const sortPanel = document.querySelector("#sortPanel");
+const bulkActions = document.querySelector("#bulkActions");
+const bulkStarBtn = document.querySelector("#bulkStarBtn");
+const bulkDeleteBtn = document.querySelector("#bulkDeleteBtn");
+const bulkDownloadBtn = document.querySelector("#bulkDownloadBtn");
+const listBackBtn = document.querySelector("#listBackBtn");
+const notesScreenCount = document.querySelector("#notesScreenCount");
+const notesScreenContent = document.querySelector("#notesScreenContent");
+const sheetBackdrop = document.querySelector("#sheetBackdrop");
+const recordingMenu = document.querySelector("#recordingMenu");
+const recordingMenuTitle = document.querySelector("#recordingMenuTitle");
 
 let db;
 let mediaRecorder;
@@ -105,7 +129,13 @@ let recordingStartedAt = 0;
 let timerInterval;
 let hasTriedToPlay = false;
 let activeCategory = "all";
+let activeScreen = "player";
 let searchTerm = "";
+let recordingSearchTerm = "";
+let recordingSort = "newest";
+let selectionMode = false;
+let selectedRecordings = new Set();
+let activeMenuRecordingId = null;
 let recordings = [];
 let phoneMusic = [];
 let notes = [];
@@ -114,6 +144,7 @@ let savedSongs = {};
 let currentQueue = [];
 let currentQueueIndex = 0;
 let objectUrls = new Map();
+let selectedRecordingMimeType = "audio/webm";
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -138,6 +169,34 @@ function formatTimer(seconds) {
   return `${minutes}:${remainingSeconds}`;
 }
 
+function parseTimer(value) {
+  const [minutes = "0", seconds = "0"] = String(value || "0:00").split(":");
+  return Number(minutes) * 60 + Number(seconds);
+}
+
+function formatBytes(bytes = 0) {
+  if (!bytes) return "0 KB";
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 1024 * 100 ? 1 : 0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getSupportedRecordingMimeType() {
+  const options = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/mpeg",
+  ];
+  return options.find((type) => !MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(type)) || "";
+}
+
+function getFormatLabel(mimeType) {
+  if (mimeType.includes("mpeg")) return "MP3 / 44100Hz";
+  if (mimeType.includes("mp4")) return "MP4 / 44100Hz";
+  if (mimeType.includes("webm")) return "WEBM / 48000Hz";
+  return "WEBM / 48000Hz";
+}
+
 function formatDateForFile(date) {
   const pad = (value) => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}-${pad(date.getMinutes())}`;
@@ -159,6 +218,25 @@ function showMessage(text, isError = false) {
   message.textContent = text;
   message.classList.toggle("error", isError);
   if (isError) console.error(text);
+}
+
+function setActiveScreen(screenId) {
+  activeScreen = screenId;
+  screenPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.screen === screenId));
+  bottomNav.querySelectorAll("button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.nav === screenId);
+  });
+  const titles = {
+    player: "Miray Player",
+    record: "Miray Recorder",
+    list: `Liste [${recordings.length}]`,
+    categories: "Kategoriler",
+    notes: "Notlar",
+  };
+  appScreenTitle.textContent = titles[screenId] || "Miray Recorder";
+  if (screenId === "list") renderRecordingsList();
+  if (screenId === "categories") renderCurrentCategory();
+  if (screenId === "notes") renderNotesScreen();
 }
 
 function readJsonStorage(key, fallback) {
@@ -544,6 +622,94 @@ function renderRecordings(list) {
   bindRecordingActions();
 }
 
+function getSortedRecordings() {
+  const term = recordingSearchTerm.trim().toLocaleLowerCase("tr-TR");
+  let list = recordings.filter((recording) => {
+    if (!term) return true;
+    return `${recording.name} ${recording.fileName}`.toLocaleLowerCase("tr-TR").includes(term);
+  });
+
+  list = [...list].sort((a, b) => {
+    if (recordingSort === "oldest") return new Date(a.createdAt) - new Date(b.createdAt);
+    if (recordingSort === "az") return (a.name || "").localeCompare(b.name || "", "tr");
+    if (recordingSort === "za") return (b.name || "").localeCompare(a.name || "", "tr");
+    if (recordingSort === "size") return (b.blob?.size || 0) - (a.blob?.size || 0);
+    if (recordingSort === "duration") return parseTimer(b.duration) - parseTimer(a.duration);
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  return list;
+}
+
+function renderRecordingsList() {
+  const list = getSortedRecordings();
+  listTitle.textContent = `Liste [${list.length}]`;
+  recordingListView.innerHTML = "";
+
+  if (!list.length) {
+    recordingListView.innerHTML = '<p class="empty-state">Henüz kayıt yok. Kayıt Al bölümünden yeni REC oluştur.</p>';
+    return;
+  }
+
+  recordingListView.innerHTML = list.map((recording) => {
+    const checked = selectedRecordings.has(recording.id) ? "checked" : "";
+    return `
+      <article class="recording-row" data-id="${escapeHtml(recording.id)}">
+        ${selectionMode ? `<input class="row-check" type="checkbox" ${checked} aria-label="Kaydı seç" />` : `<button class="row-play" type="button" data-row-action="play">▶</button>`}
+        <div>
+          <p class="row-title">${escapeHtml(recording.name)}</p>
+          <p class="row-meta">${escapeHtml(formatDisplayDate(recording.createdAt))}</p>
+        </div>
+        <div class="row-side">
+          <div>${escapeHtml(recording.duration || "00:00")}</div>
+          <div>${escapeHtml(formatBytes(recording.blob?.size || 0))}</div>
+        </div>
+        <button class="row-menu" type="button" data-row-action="menu" aria-label="Kayıt menüsü">⋮</button>
+      </article>
+    `;
+  }).join("");
+
+  recordingListView.querySelectorAll("[data-row-action='play']").forEach((button) => {
+    button.addEventListener("click", () => {
+      const recording = recordings.find((item) => item.id === button.closest("[data-id]").dataset.id);
+      playItem(normalizeRecording(recording), recordings.map(normalizeRecording));
+    });
+  });
+
+  recordingListView.querySelectorAll("[data-row-action='menu']").forEach((button) => {
+    button.addEventListener("click", () => openRecordingMenu(button.closest("[data-id]").dataset.id));
+  });
+
+  recordingListView.querySelectorAll(".row-check").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const id = checkbox.closest("[data-id]").dataset.id;
+      if (checkbox.checked) selectedRecordings.add(id);
+      else selectedRecordings.delete(id);
+    });
+  });
+}
+
+function openRecordingMenu(recordingId) {
+  const recording = recordings.find((item) => item.id === recordingId);
+  if (!recording) return;
+  activeMenuRecordingId = recordingId;
+  recordingMenuTitle.textContent = recording.name;
+  const starButton = recordingMenu.querySelector("[data-menu-action='star']");
+  starButton.textContent = isStarred(recordingId, "recording") ? "★ Yıldızı kaldır" : "☆ En Beğendiklerime ekle";
+  sheetBackdrop.hidden = false;
+  recordingMenu.hidden = false;
+}
+
+function closeRecordingMenu() {
+  sheetBackdrop.hidden = true;
+  recordingMenu.hidden = true;
+  activeMenuRecordingId = null;
+}
+
+function getActiveMenuRecording() {
+  return recordings.find((item) => item.id === activeMenuRecordingId);
+}
+
 function renderPhoneMusic(list) {
   categoryCount.textContent = list.length;
   categoryContent.innerHTML = `
@@ -583,6 +749,31 @@ function renderNotes(list) {
     </article>
   `).join("")}</div>`;
   bindNoteActions();
+}
+
+function renderNotesScreen() {
+  notesScreenCount.textContent = notes.length;
+  if (!notes.length) {
+    notesScreenContent.innerHTML = '<p class="empty-state">Henüz not yok. Şarkı veya kayıt kartlarından not ekleyebilirsin.</p>';
+    return;
+  }
+  notesScreenContent.innerHTML = `<div class="item-list">${notes.map((note) => `
+    <article class="note-item" data-note-id="${escapeHtml(note.id)}">
+      <p class="note-title">${escapeHtml(note.title)}</p>
+      <p class="note-meta">${escapeHtml(getItemLabel(note.itemId, note.itemType))} · ${escapeHtml(formatDisplayDate(note.updatedAt || note.createdAt))}</p>
+      <p class="note-text">${escapeHtml(note.text)}</p>
+      <div class="note-actions">
+        <button type="button" data-action="edit-note">Düzenle</button>
+        <button type="button" class="delete" data-action="delete-note">Sil</button>
+      </div>
+    </article>
+  `).join("")}</div>`;
+  notesScreenContent.querySelectorAll("[data-action='edit-note']").forEach((button) => {
+    button.addEventListener("click", () => editNote(button.closest("[data-note-id]").dataset.noteId));
+  });
+  notesScreenContent.querySelectorAll("[data-action='delete-note']").forEach((button) => {
+    button.addEventListener("click", () => deleteNote(button.closest("[data-note-id]").dataset.noteId));
+  });
 }
 
 function renderTrackList() {
@@ -755,6 +946,7 @@ function toggleStar(itemId, itemType) {
   else stars[key] = true;
   writeJsonStorage(STORAGE_KEYS.stars, stars);
   renderCurrentCategory();
+  if (activeScreen === "list") renderRecordingsList();
 }
 
 function toggleSavedSong(songId) {
@@ -771,6 +963,7 @@ async function renameRecording(recordingId, newName) {
   await saveToIndexedDB(RECORDINGS_STORE, recording);
   await loadFromIndexedDB();
   renderCurrentCategory();
+  if (activeScreen === "list") renderRecordingsList();
   showMessage("Kayıt adı güncellendi.");
 }
 
@@ -791,6 +984,7 @@ function addNote(itemId, itemType) {
   });
   writeJsonStorage(STORAGE_KEYS.notes, notes);
   renderCurrentCategory();
+  renderNotesScreen();
   showMessage("Not eklendi.");
 }
 
@@ -806,6 +1000,7 @@ function editNote(noteId) {
   note.updatedAt = new Date().toISOString();
   writeJsonStorage(STORAGE_KEYS.notes, notes);
   renderCurrentCategory();
+  renderNotesScreen();
   showMessage("Not güncellendi.");
 }
 
@@ -814,6 +1009,7 @@ function deleteNote(noteId) {
   notes = notes.filter((note) => note.id !== noteId);
   writeJsonStorage(STORAGE_KEYS.notes, notes);
   renderCurrentCategory();
+  renderNotesScreen();
   showMessage("Not silindi.");
 }
 
@@ -856,7 +1052,12 @@ async function handlePhoneMusicSelection(event) {
 }
 
 function updateRecordTimer() {
-  recordTimer.textContent = formatTimer(Math.floor((Date.now() - recordingStartedAt) / 1000));
+  const elapsed = Math.floor((Date.now() - recordingStartedAt) / 1000);
+  const formatted = formatTimer(elapsed);
+  recordTimer.textContent = formatted;
+  recordBigTime.textContent = formatted;
+  const currentBytes = recordingChunks.reduce((total, chunk) => total + chunk.size, 0);
+  recordSize.textContent = formatBytes(currentBytes);
 }
 
 async function startRecording() {
@@ -872,15 +1073,16 @@ async function startRecording() {
     showMessage("Bu tarayıcı mikrofon erişimini desteklemiyor.", true);
     return;
   }
-  if (MediaRecorder.isTypeSupported && !MediaRecorder.isTypeSupported("audio/webm")) {
-    showMessage("Bu tarayıcı audio/webm kayıt formatını desteklemiyor.", true);
+  selectedRecordingMimeType = getSupportedRecordingMimeType();
+  if (!selectedRecordingMimeType) {
+    showMessage("Bu tarayıcı desteklenen ses kayıt formatı sunmuyor.", true);
     return;
   }
 
   try {
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     recordingChunks = [];
-    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: "audio/webm" });
+    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: selectedRecordingMimeType });
     mediaRecorder.addEventListener("dataavailable", (event) => {
       if (event.data.size > 0) recordingChunks.push(event.data);
     });
@@ -889,9 +1091,10 @@ async function startRecording() {
     recordingStartedAt = Date.now();
     timerInterval = window.setInterval(updateRecordTimer, 500);
     updateRecordTimer();
-    recordBtn.disabled = true;
+    recordBtn.textContent = "■ Stop";
     stopBtn.disabled = false;
     recordBtn.classList.add("is-recording");
+    waveDisplay.classList.add("is-recording");
     showMessage("Kayıt devam ediyor.");
   } catch (error) {
     console.error(error);
@@ -902,14 +1105,18 @@ async function startRecording() {
 function stopRecording() {
   if (!mediaRecorder || mediaRecorder.state !== "recording") return;
   mediaRecorder.stop();
+  recordBtn.textContent = "● Record";
   stopBtn.disabled = true;
 }
 
 async function handleRecordingStop() {
   window.clearInterval(timerInterval);
   recordTimer.textContent = "00:00";
-  recordBtn.disabled = false;
+  recordBigTime.textContent = "00:00";
+  recordSize.textContent = "0 KB";
+  recordBtn.textContent = "● Record";
   recordBtn.classList.remove("is-recording");
+  waveDisplay.classList.remove("is-recording");
   mediaStream?.getTracks().forEach((track) => track.stop());
 
   try {
@@ -919,7 +1126,7 @@ async function handleRecordingStop() {
     const givenName = prompt("Kayda isim ver:", defaultName);
     const name = givenName === null || !givenName.trim() ? defaultName : givenName.trim();
     const fileName = `miray-recording-${formatDateForFile(createdAt)}.webm`;
-    const blob = new Blob(recordingChunks, { type: "audio/webm" });
+    const blob = new Blob(recordingChunks, { type: selectedRecordingMimeType || "audio/webm" });
     if (!blob.size) {
       showMessage("Kayıt boş geldi. Mikrofon sesini algılayıp tekrar dene.", true);
       return;
@@ -936,6 +1143,8 @@ async function handleRecordingStop() {
     });
     await loadFromIndexedDB();
     setActiveCategory("recordings");
+    setActiveScreen("list");
+    renderRecordingsList();
     showMessage("Kayıt REC Kayıtlarım bölümüne eklendi.");
   } catch (error) {
     console.error(error);
@@ -955,6 +1164,7 @@ async function removeRecording(recordingId) {
   objectUrls.delete(`recording:${recordingId}`);
   await loadFromIndexedDB();
   renderCurrentCategory();
+  if (activeScreen === "list") renderRecordingsList();
   showMessage("REC kaydı silindi.");
 }
 
@@ -980,6 +1190,40 @@ async function downloadRecording(recording) {
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   showMessage("Kayıt indirme olarak başlatıldı.");
+}
+
+function addToPlaylist(itemId, itemType) {
+  showMessage("Çalma listesine ekleme sonraki sürümde genişletilecek. Şimdilik yıldız veya kaydet seçeneklerini kullanabilirsin.");
+}
+
+async function shareRecording(recordingId) {
+  const recording = recordings.find((item) => item.id === recordingId);
+  if (!recording) return;
+  const file = new File([recording.blob], recording.fileName, { type: recording.blob.type || "audio/webm" });
+  if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+    try {
+      await navigator.share({ title: recording.name, text: "Miray Recorder kaydı", files: [file] });
+      showMessage("Paylaşım ekranı açıldı.");
+      return;
+    } catch (error) {
+      if (error?.name !== "AbortError") console.error(error);
+    }
+  }
+  showMessage("Paylaşım desteklenmiyor. İndirme başlatılıyor.");
+  await downloadRecording(recording);
+}
+
+function showRecordingDetails(recordingId) {
+  const recording = recordings.find((item) => item.id === recordingId);
+  if (!recording) return;
+  alert([
+    `Ad: ${recording.name}`,
+    `Tarih: ${formatDisplayDate(recording.createdAt)}`,
+    `Süre: ${recording.duration || "00:00"}`,
+    `Format: ${recording.blob?.type || "audio/webm"}`,
+    `Boyut: ${formatBytes(recording.blob?.size || 0)}`,
+    `ID: ${recording.id}`,
+  ].join("\n"));
 }
 
 playPauseBtn.addEventListener("click", () => {
@@ -1019,7 +1263,104 @@ searchInput.addEventListener("input", (event) => {
   renderCurrentCategory();
 });
 
-recordBtn.addEventListener("click", startRecording);
+bottomNav.querySelectorAll("[data-nav]").forEach((button) => {
+  button.addEventListener("click", () => setActiveScreen(button.dataset.nav));
+});
+
+listBackBtn.addEventListener("click", () => setActiveScreen("player"));
+
+toggleListSearchBtn.addEventListener("click", () => {
+  recordingSearchInput.hidden = !recordingSearchInput.hidden;
+  if (!recordingSearchInput.hidden) recordingSearchInput.focus();
+});
+
+recordingSearchInput.addEventListener("input", (event) => {
+  recordingSearchTerm = event.target.value;
+  renderRecordingsList();
+});
+
+sortMenuBtn.addEventListener("click", () => {
+  sortPanel.hidden = !sortPanel.hidden;
+});
+
+sortPanel.querySelectorAll("[data-sort]").forEach((button) => {
+  button.addEventListener("click", () => {
+    recordingSort = button.dataset.sort;
+    sortPanel.hidden = true;
+    renderRecordingsList();
+  });
+});
+
+selectionModeBtn.addEventListener("click", () => {
+  selectionMode = !selectionMode;
+  selectedRecordings.clear();
+  bulkActions.hidden = !selectionMode;
+  selectionModeBtn.classList.toggle("active", selectionMode);
+  renderRecordingsList();
+});
+
+bulkStarBtn.addEventListener("click", () => {
+  selectedRecordings.forEach((id) => {
+    stars[starKey(id, "recording")] = true;
+  });
+  writeJsonStorage(STORAGE_KEYS.stars, stars);
+  renderRecordingsList();
+  showMessage("Seçili kayıtlar yıldızlandı.");
+});
+
+bulkDeleteBtn.addEventListener("click", async () => {
+  if (!selectedRecordings.size || !confirm("Seçili kayıtlar silinsin mi?")) return;
+  for (const id of selectedRecordings) await deleteFromStore(RECORDINGS_STORE, id);
+  selectedRecordings.clear();
+  await loadFromIndexedDB();
+  renderRecordingsList();
+  renderCurrentCategory();
+  showMessage("Seçili kayıtlar silindi.");
+});
+
+bulkDownloadBtn.addEventListener("click", () => {
+  showMessage("Toplu indirme bu tarayıcıda desteklenmiyor. Kayıtları tek tek indirebilirsin.", true);
+});
+
+sheetBackdrop.addEventListener("click", closeRecordingMenu);
+
+recordingMenu.querySelectorAll("[data-menu-action]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const action = button.dataset.menuAction;
+    const recording = getActiveMenuRecording();
+    if (!recording) return;
+    closeRecordingMenu();
+
+    if (action === "listen") {
+      await playItem(normalizeRecording(recording), recordings.map(normalizeRecording));
+      setActiveScreen("player");
+    } else if (action === "rename") {
+      const newName = prompt("Kayıt adı:", recording.name || "");
+      if (newName !== null) await renameRecording(recording.id, newName.trim());
+    } else if (action === "playlist") {
+      addToPlaylist(recording.id, "recording");
+    } else if (action === "star") {
+      toggleStar(recording.id, "recording");
+    } else if (action === "note") {
+      addNote(recording.id, "recording");
+    } else if (action === "edit") {
+      showMessage("İçeriği düzenle / kırpma özelliği sonraki sürümde eklenecek.");
+    } else if (action === "download") {
+      await downloadRecording(recording);
+    } else if (action === "share") {
+      await shareRecording(recording.id);
+    } else if (action === "delete") {
+      await removeRecording(recording.id);
+    } else if (action === "details") {
+      showRecordingDetails(recording.id);
+    }
+  });
+});
+
+recordBtn.addEventListener("click", () => {
+  if (mediaRecorder?.state === "recording") stopRecording();
+  else startRecording();
+});
 stopBtn.addEventListener("click", stopRecording);
 
 window.addEventListener("beforeunload", () => {
@@ -1040,6 +1381,8 @@ if ("serviceWorker" in navigator) {
 
 async function init() {
   audioPlayer.volume = volume.value;
+  selectedRecordingMimeType = "MediaRecorder" in window ? getSupportedRecordingMimeType() || "audio/webm" : "audio/webm";
+  recordFormat.textContent = getFormatLabel(selectedRecordingMimeType);
   stars = readJsonStorage(STORAGE_KEYS.stars, {});
   savedSongs = readJsonStorage(STORAGE_KEYS.savedSongs, {});
   notes = readJsonStorage(STORAGE_KEYS.notes, []);
@@ -1057,6 +1400,9 @@ async function init() {
   }
 
   setActiveCategory("all");
+  renderRecordingsList();
+  renderNotesScreen();
+  setActiveScreen("record");
 }
 
 init();

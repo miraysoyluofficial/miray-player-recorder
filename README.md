@@ -18,6 +18,14 @@ http://localhost:8080
 
 ## Kategori sistemi nasıl çalışır?
 
+Alt navigasyonda beş ana ekran vardır:
+
+1. **Player**: Şarkı, telefon müziği ve REC kayıtlarını çalar.
+2. **Kayıt Al**: Büyük kırmızı kayıt butonu, süre, format ve dalga animasyonu olan recorder ekranıdır.
+3. **Liste**: REC kayıtlarını örnek ses kaydedici uygulamaları gibi satır satır gösterir.
+4. **Kategoriler**: Şarkı, telefon müziği, REC, favoriler, kaydedilenler ve demoları filtreler.
+5. **Notlar**: Şarkı ve kayıt notlarını gösterir.
+
 Uygulamada yatay kaydırılabilir kategori barı vardır. Aktif kategori vurgulanır ve içerik alanında sadece o kategoriye ait liste görünür.
 
 Kategoriler:
@@ -66,7 +74,7 @@ Yeni gömülü müzik eklemek için:
 
 ## REC kayıtları nasıl oluşturulur?
 
-Record tuşuna dokunun, mikrofon iznini verin ve Stop ile kaydı bitirin. Kayıt `audio/webm` Blob olarak oluşturulur ve IndexedDB içinde saklanır.
+**Kayıt Al** ekranında Record tuşuna dokunun, mikrofon iznini verin ve Stop ile kaydı bitirin. Uygulama tarayıcının desteklediği gerçek formatı gösterir; çoğu Chrome cihazda `WEBM / 48000Hz` kullanılır. Kayıt Blob olarak oluşturulur ve IndexedDB içinde saklanır.
 
 ## REC kayıtları nasıl isimlendirilir?
 
@@ -77,6 +85,18 @@ REC Kaydı - YYYY-MM-DD HH:mm
 ```
 
 REC kayıt kartındaki **Adlandır** butonuyla kayıt adı sonradan değiştirilebilir. Yeni isim IndexedDB'de saklanır ve sayfa yenilenince kaybolmaz.
+
+## Kayıtlar nerede listelenir?
+
+**Liste** ekranında kayıtlar en yeniden eskiye satır satır görünür. Her satırda play butonu, kayıt adı, tarih/saat, süre, dosya boyutu ve üç nokta menüsü vardır.
+
+## Üç nokta menüsü ne işe yarar?
+
+Kayıt satırındaki üç nokta menüsü bottom sheet açar. Buradan kayıt dinlenebilir, adı düzenlenebilir, çalma listesine eklenebilir, yıldızlanabilir, not eklenebilir, indirilebilir, paylaşılabilir, silinebilir ve ayrıntıları görüntülenebilir. İçeriği kırpma/düzenleme özelliği sonraki sürüm için uyarı gösterir.
+
+## Sıralama ve seçim modu nasıl çalışır?
+
+Liste ekranında sıralama menüsüyle kayıtları en yeni, en eski, ada göre, boyuta göre veya süreye göre sıralayabilirsiniz. Seçim modu birden fazla kaydı seçip toplu yıldızlama veya toplu silme yapar. Toplu indirme tarayıcı kısıtları nedeniyle uyarı gösterir.
 
 ## Yıldızlı “En Beğendiklerim” sistemi nasıl çalışır?
 

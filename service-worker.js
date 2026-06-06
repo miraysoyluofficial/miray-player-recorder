@@ -1,4 +1,4 @@
-const CACHE_NAME = "miray-player-recorder-v7";
+const CACHE_NAME = "miray-player-recorder-v9";
 const APP_SHELL = [
   "./",
   "./index.html",

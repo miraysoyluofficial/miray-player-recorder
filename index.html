@@ -16,13 +16,17 @@
       <header class="app-header">
         <div>
           <p class="eyebrow">Miray Studio</p>
-          <h1>Miray Player Recorder</h1>
+          <h1 id="appScreenTitle">Miray Recorder</h1>
         </div>
-        <div class="status-pill" id="installStatus">PWA hazır</div>
+        <div class="header-actions">
+          <button class="top-icon" id="infoBtn" type="button" aria-label="Bilgi">i</button>
+          <button class="top-icon" id="settingsBtn" type="button" aria-label="Ayarlar">⚙</button>
+          <div class="status-pill" id="installStatus">PWA hazır</div>
+        </div>
       </header>
 
       <main>
-        <section class="card player-card" aria-labelledby="playerTitle">
+        <section class="card player-card screen-panel active" data-screen="player" aria-labelledby="playerTitle">
           <div class="now-playing">
             <img id="coverArt" src="covers/demo.svg" alt="Şarkı kapağı" />
             <div class="track-meta">
@@ -54,13 +58,26 @@
           <div class="track-list" id="trackList" aria-label="Aktif oynatma listesi"></div>
         </section>
 
-        <section class="card recorder-card" aria-labelledby="recorderTitle">
+        <section class="card recorder-card screen-panel" data-screen="record" aria-labelledby="recorderTitle">
           <div class="card-heading">
             <div>
               <p class="section-label">Recorder</p>
-              <h2 id="recorderTitle">Ses Kaydı</h2>
+              <h2 id="recorderTitle">Kayıt Al</h2>
             </div>
             <div class="record-timer" id="recordTimer">00:00</div>
+          </div>
+
+          <div class="record-studio">
+            <div class="format-pill" id="recordFormat">WEBM / 48000Hz</div>
+            <div class="wave-display" id="waveDisplay" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="record-stats">
+              <strong id="recordBigTime">00:00</strong>
+              <span id="recordSize">0 KB</span>
+            </div>
+            <p class="storage-note">Kayıtlar cihazında saklanır / indirilebilir</p>
           </div>
 
           <div class="recorder-actions">
@@ -71,7 +88,34 @@
           <p class="message" id="message" role="status" aria-live="polite">Kayıt için Record tuşuna dokun.</p>
         </section>
 
-        <section class="card library-card" aria-labelledby="libraryTitle">
+        <section class="card list-card screen-panel" data-screen="list" aria-labelledby="listTitle">
+          <div class="list-topbar">
+            <button class="top-icon" id="listBackBtn" type="button" aria-label="Player'a dön">‹</button>
+            <h2 id="listTitle">Liste [0]</h2>
+            <div class="list-tools">
+              <button class="top-icon" id="toggleListSearchBtn" type="button" aria-label="Ara">⌕</button>
+              <button class="top-icon" id="selectionModeBtn" type="button" aria-label="Seçim modu">☑</button>
+              <button class="top-icon" id="sortMenuBtn" type="button" aria-label="Sırala">☰</button>
+            </div>
+          </div>
+          <input class="list-search" id="recordingSearchInput" type="search" placeholder="Kayıt ara..." autocomplete="off" hidden />
+          <div class="sort-panel" id="sortPanel" hidden>
+            <button type="button" data-sort="newest">En yeni</button>
+            <button type="button" data-sort="oldest">En eski</button>
+            <button type="button" data-sort="az">Ada göre A-Z</button>
+            <button type="button" data-sort="za">Ada göre Z-A</button>
+            <button type="button" data-sort="size">Boyuta göre</button>
+            <button type="button" data-sort="duration">Süreye göre</button>
+          </div>
+          <div class="bulk-actions" id="bulkActions" hidden>
+            <button type="button" id="bulkStarBtn">Toplu yıldızla</button>
+            <button type="button" id="bulkDeleteBtn">Toplu sil</button>
+            <button type="button" id="bulkDownloadBtn">Toplu indir</button>
+          </div>
+          <div class="recording-list" id="recordingListView"></div>
+        </section>
+
+        <section class="card library-card screen-panel" data-screen="categories" aria-labelledby="libraryTitle">
           <div class="card-heading">
             <div>
               <p class="section-label">Kütüphane</p>
@@ -89,8 +133,45 @@
 
           <div class="category-content" id="categoryContent"></div>
         </section>
+
+        <section class="card notes-screen screen-panel" data-screen="notes" aria-labelledby="notesScreenTitle">
+          <div class="card-heading">
+            <div>
+              <p class="section-label">Notes</p>
+              <h2 id="notesScreenTitle">Notlar</h2>
+            </div>
+            <span class="count-badge" id="notesScreenCount">0</span>
+          </div>
+          <div class="category-content" id="notesScreenContent"></div>
+        </section>
       </main>
+
+      <nav class="bottom-nav" aria-label="Alt navigasyon">
+        <button type="button" class="active" data-nav="player">▶<span>Player</span></button>
+        <button type="button" data-nav="record">●<span>Kayıt Al</span></button>
+        <button type="button" data-nav="list">≡<span>Liste</span></button>
+        <button type="button" data-nav="categories">▦<span>Kategoriler</span></button>
+        <button type="button" data-nav="notes">✎<span>Notlar</span></button>
+      </nav>
     </div>
+
+    <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+    <section class="bottom-sheet" id="recordingMenu" aria-label="Kayıt menüsü" hidden>
+      <div class="sheet-handle"></div>
+      <h2 id="recordingMenuTitle">Kayıt</h2>
+      <div class="sheet-actions">
+        <button type="button" data-menu-action="listen">▶ Dinle</button>
+        <button type="button" data-menu-action="rename">✎ Adı düzenle</button>
+        <button type="button" data-menu-action="playlist">＋ Çalma listesine ekle</button>
+        <button type="button" data-menu-action="star">☆ En Beğendiklerime ekle</button>
+        <button type="button" data-menu-action="note">▤ Not ekle</button>
+        <button type="button" data-menu-action="edit">✂ İçeriği düzenle</button>
+        <button type="button" data-menu-action="download">⇩ Telefona indir</button>
+        <button type="button" data-menu-action="share">↗ Paylaş</button>
+        <button type="button" data-menu-action="delete">⌫ Sil</button>
+        <button type="button" data-menu-action="details">ⓘ Ayrıntıları görüntüle</button>
+      </div>
+    </section>
 
     <audio id="audioPlayer" preload="none"></audio>
     <script src="script.js"></script>
