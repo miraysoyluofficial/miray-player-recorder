@@ -205,6 +205,26 @@ function describePlaybackError(error) {
   return "Ses çalınamadı. Dosyanın doğru klasörde olduğundan emin ol.";
 }
 
+function describeStorageError(error) {
+  if (error?.name === "QuotaExceededError") {
+    return "Kayıt saklanamadı: tarayıcı depolama alanı dolu. Chrome site verilerinde yer açıp tekrar dene.";
+  }
+
+  if (error?.name === "InvalidStateError" || error?.name === "TransactionInactiveError") {
+    return "Kayıt saklanamadı: IndexedDB bağlantısı kapandı. Sayfayı yenileyip tekrar kayıt al.";
+  }
+
+  if (error?.name === "VersionError" || error?.name === "UpgradeBlocked") {
+    return "Kayıt saklanamadı: eski uygulama sekmesi veritabanını kilitliyor. Diğer Miray Player sekmelerini kapatıp sayfayı yenile.";
+  }
+
+  if (error?.name === "DataCloneError") {
+    return "Kayıt saklanamadı: tarayıcı bu ses Blob'unu IndexedDB içinde saklayamadı.";
+  }
+
+  return `Kayıt IndexedDB içine kaydedilemedi${error?.name ? ` (${error.name})` : ""}. Sayfayı yenileyip tekrar dene.`;
+}
+
 function normalizeSong(song) {
   return {
     ...song,
@@ -265,9 +285,20 @@ function openDb() {
       }
     };
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const database = request.result;
+      database.onversionchange = () => database.close();
+      resolve(database);
+    };
     request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new DOMException("IndexedDB upgrade blocked", "UpgradeBlocked"));
   });
+}
+
+async function ensureDb() {
+  if (db && db.objectStoreNames.contains(RECORDINGS_STORE)) return db;
+  db = await openDb();
+  return db;
 }
 
 function store(name, mode = "readonly") {
@@ -284,9 +315,12 @@ function getAllFromStore(name) {
 
 function putToStore(name, value) {
   return new Promise((resolve, reject) => {
-    const request = store(name, "readwrite").put(value);
-    request.onsuccess = () => resolve();
+    const tx = db.transaction(name, "readwrite");
+    const request = tx.objectStore(name).put(value);
     request.onerror = () => reject(request.error);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || request.error);
+    tx.onabort = () => reject(tx.error || request.error);
   });
 }
 
@@ -299,10 +333,12 @@ function deleteFromStore(name, id) {
 }
 
 async function saveToIndexedDB(storeName, value) {
+  await ensureDb();
   await putToStore(storeName, value);
 }
 
 async function loadFromIndexedDB() {
+  await ensureDb();
   const rawRecordings = await getAllFromStore(RECORDINGS_STORE);
   recordings = rawRecordings.map((recording) => {
     const createdAt = recording.createdAt || new Date().toISOString();
@@ -884,6 +920,10 @@ async function handleRecordingStop() {
     const name = givenName === null || !givenName.trim() ? defaultName : givenName.trim();
     const fileName = `miray-recording-${formatDateForFile(createdAt)}.webm`;
     const blob = new Blob(recordingChunks, { type: "audio/webm" });
+    if (!blob.size) {
+      showMessage("Kayıt boş geldi. Mikrofon sesini algılayıp tekrar dene.", true);
+      return;
+    }
     await saveToIndexedDB(RECORDINGS_STORE, {
       id: `rec-${crypto.randomUUID()}`,
       name,
@@ -899,7 +939,7 @@ async function handleRecordingStop() {
     showMessage("Kayıt REC Kayıtlarım bölümüne eklendi.");
   } catch (error) {
     console.error(error);
-    showMessage("Kayıt IndexedDB içine kaydedilemedi.", true);
+    showMessage(describeStorageError(error), true);
   }
 }
 
