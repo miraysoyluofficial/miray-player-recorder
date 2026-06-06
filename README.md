@@ -76,6 +76,10 @@ Yeni gömülü müzik eklemek için:
 
 **Kayıt Al** ekranında Record tuşuna dokunun, mikrofon iznini verin ve Stop ile kaydı bitirin. Uygulama tarayıcının desteklediği gerçek formatı gösterir; çoğu Chrome cihazda `WEBM / 48000Hz` kullanılır. Kayıt Blob olarak oluşturulur ve IndexedDB içinde saklanır.
 
+## Player hız ve paylaşım butonları nasıl çalışır?
+
+Player ekranındaki `-` ve `+` butonları çalma hızını `0.50x` ile `2.00x` arasında değiştirir. Paylaş simgesi, seçili şarkı, telefon müziği veya REC kaydı için Android paylaşım ekranını açar. Chrome destekliyorsa WhatsApp, Telegram, Gmail gibi uygulamalara ses dosyasını doğrudan gönderebilirsiniz.
+
 ## REC kayıtları nasıl isimlendirilir?
 
 Stop sonrası uygulama kayda isim vermek için özel bir pencere açar. Bu pencerede kayıt adı yazılabilir; ayrıca yıldız, kalp veya sakla işareti verilebilir. Boş bırakırsanız otomatik isim oluşturur:
