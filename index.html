@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=12" />
     <title>Miray Player Recorder</title>
   </head>
   <body>
@@ -31,8 +31,8 @@
             <img id="coverArt" src="covers/demo.svg" alt="Şarkı kapağı" />
             <div class="track-meta">
               <p class="section-label" id="playerTitle">MP3 Player</p>
-              <h2 id="trackTitle">Demo Song</h2>
-              <p id="trackArtist">Miray Soylu</p>
+              <h2 id="trackTitle">Henüz şarkı seçilmedi</h2>
+              <p id="trackArtist">Telefon müziği veya REC kaydı ekle</p>
             </div>
           </div>
 
@@ -84,6 +84,7 @@
             <button class="record-button" id="recordBtn" type="button">● Record</button>
             <button class="stop-button" id="stopBtn" type="button" disabled>Stop</button>
           </div>
+          <button class="append-button" id="appendRecordBtn" type="button" disabled>Son kaydın üzerine devam et</button>
 
           <p class="message" id="message" role="status" aria-live="polite">Kayıt için Record tuşuna dokun.</p>
         </section>
@@ -95,6 +96,7 @@
             <div class="list-tools">
               <button class="top-icon" id="toggleListSearchBtn" type="button" aria-label="Ara">⌕</button>
               <button class="top-icon" id="selectionModeBtn" type="button" aria-label="Seçim modu">☑</button>
+              <button class="top-icon zip-icon" id="exportZipBtn" type="button" aria-label="Tüm kayıtları ZIP olarak dışa aktar">⇩</button>
               <button class="top-icon" id="sortMenuBtn" type="button" aria-label="Sırala">☰</button>
             </div>
           </div>
@@ -164,6 +166,7 @@
         <button type="button" data-menu-action="rename">✎ Adı düzenle</button>
         <button type="button" data-menu-action="playlist">＋ Çalma listesine ekle</button>
         <button type="button" data-menu-action="star">☆ En Beğendiklerime ekle</button>
+        <button type="button" data-menu-action="heart">♡ Kalplilerime ekle</button>
         <button type="button" data-menu-action="note">▤ Not ekle</button>
         <button type="button" data-menu-action="edit">✂ İçeriği düzenle</button>
         <button type="button" data-menu-action="download">⇩ Telefona indir</button>
@@ -173,7 +176,34 @@
       </div>
     </section>
 
+    <div class="modal-backdrop" id="saveRecordingBackdrop" hidden></div>
+    <section class="save-modal" id="saveRecordingModal" aria-label="Kaydı kaydet" hidden>
+      <h2>Kaydı kaydet</h2>
+      <label for="recordingNameInput">Kayıt adı</label>
+      <input id="recordingNameInput" type="text" autocomplete="off" />
+      <div class="mark-options" aria-label="Kayıt işaretleri">
+        <button type="button" data-save-mark="star">☆<span>Yıldız</span></button>
+        <button type="button" data-save-mark="heart">♡<span>Kalp</span></button>
+        <button type="button" data-save-mark="saved">✓<span>Sakla</span></button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="cancelSaveRecordingBtn">Vazgeç</button>
+        <button type="button" id="confirmSaveRecordingBtn">Kaydet</button>
+      </div>
+    </section>
+
+    <div class="modal-backdrop" id="zipExportBackdrop" hidden></div>
+    <section class="save-modal zip-modal" id="zipExportModal" aria-label="ZIP dışa aktar" hidden>
+      <h2>ZIP hazır</h2>
+      <p id="zipExportInfo">Kayıt arşivi hazırlandı.</p>
+      <div class="modal-actions">
+        <button type="button" id="downloadZipBtn">Telefona indir</button>
+        <button type="button" id="shareZipBtn">Paylaş</button>
+      </div>
+      <button class="modal-close" type="button" id="closeZipModalBtn">Kapat</button>
+    </section>
+
     <audio id="audioPlayer" preload="none"></audio>
-    <script src="script.js"></script>
+    <script src="script.js?v=12"></script>
   </body>
 </html>
