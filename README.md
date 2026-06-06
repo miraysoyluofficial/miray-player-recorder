@@ -34,9 +34,9 @@ Kategoriler:
 2. **Telefon Müziklerim**: Telefonda seçilen ses dosyalarını listeler.
 3. **REC Kayıtlarım**: Uygulama içindeki Record tuşuyla alınan kayıtları listeler.
 4. **Kayıt Notlarım**: Şarkı, telefon müziği veya REC kayıtlarına eklenen notları gösterir.
-5. **⭐ En Beğendiklerim**: Yıldızlanan şarkı, telefon müziği ve REC kayıtlarını gösterir.
+5. **♥★ En Çok Beğendiklerim**: Kalp veya yıldız verilen şarkı, telefon müziği ve REC kayıtlarını gösterir. İçindeki filtrelerle sadece kalpliler veya sadece yıldızlılar listelenebilir.
 6. **Kaydettiğim Şarkılar**: Kaydet butonuyla işaretlenen şarkıları gösterir.
-7. **Demolar**: `category: "demo"` olan şarkıları listeler.
+7. **Çöp Kutusu**: Silinen şarkı, telefon müziği ve REC kayıtlarını saklar. Buradan geri alınabilir veya kalıcı silinebilir.
 
 Üstteki arama alanı aktif kategori içinde şarkı adı, sanatçı, kayıt adı, dosya adı, tag ve notlara göre arama yapar.
 
@@ -78,7 +78,7 @@ Yeni gömülü müzik eklemek için:
 
 ## REC kayıtları nasıl isimlendirilir?
 
-Stop sonrası uygulama kayda isim vermenizi ister. Boş bırakırsanız otomatik isim oluşturur:
+Stop sonrası uygulama kayda isim vermek için özel bir pencere açar. Bu pencerede kayıt adı yazılabilir; ayrıca yıldız, kalp veya sakla işareti verilebilir. Boş bırakırsanız otomatik isim oluşturur:
 
 ```text
 REC Kaydı - YYYY-MM-DD HH:mm
@@ -86,9 +86,17 @@ REC Kaydı - YYYY-MM-DD HH:mm
 
 REC kayıt kartındaki **Adlandır** butonuyla kayıt adı sonradan değiştirilebilir. Yeni isim IndexedDB'de saklanır ve sayfa yenilenince kaybolmaz.
 
+## Son kaydın üzerine devam et nasıl çalışır?
+
+Bir kayıt oluşturduktan sonra **Kayıt Al** ekranındaki **Üzerine devam et** butonu aktif olur. Bu butona dokunup yeni kayıt aldığınızda yeni ses parçası son REC kaydının arkasına eklenir ve kayıt tek dosya olarak kalır.
+
 ## Kayıtlar nerede listelenir?
 
 **Liste** ekranında kayıtlar en yeniden eskiye satır satır görünür. Her satırda play butonu, kayıt adı, tarih/saat, süre, dosya boyutu ve üç nokta menüsü vardır.
+
+## Tüm kayıtlar ZIP olarak nasıl dışa aktarılır?
+
+**Liste** ekranındaki indirme simgesine dokunun. Uygulama aktif REC kayıtlarını `miray-recordings-YYYY-MM-DD-HH-mm.zip` adıyla tek ZIP dosyası yapar ve **Telefona indir / Paylaş** penceresini açar. Android Chrome destekliyorsa Paylaş düğmesi WhatsApp, Telegram, Gmail gibi uygulamalara gönderim ekranını açar; desteklenmezse **Telefona indir** seçeneğini kullanın.
 
 ## Üç nokta menüsü ne işe yarar?
 
@@ -96,23 +104,23 @@ Kayıt satırındaki üç nokta menüsü bottom sheet açar. Buradan kayıt dinl
 
 ## Sıralama ve seçim modu nasıl çalışır?
 
-Liste ekranında sıralama menüsüyle kayıtları en yeni, en eski, ada göre, boyuta göre veya süreye göre sıralayabilirsiniz. Seçim modu birden fazla kaydı seçip toplu yıldızlama veya toplu silme yapar. Toplu indirme tarayıcı kısıtları nedeniyle uyarı gösterir.
+Liste ekranında sıralama menüsüyle kayıtları en yeni, en eski, ada göre, boyuta göre veya süreye göre sıralayabilirsiniz. Seçim modu birden fazla kaydı seçip toplu yıldızlama veya toplu silme yapar. Toplu indirme düğmesi de tüm aktif kayıtları ZIP olarak dışa aktarır.
 
 ## Yıldızlı “En Beğendiklerim” sistemi nasıl çalışır?
 
-Şarkı, telefon müziği veya REC kaydı üzerindeki yıldız butonuna dokununca içerik **⭐ En Beğendiklerim** kategorisine eklenir. Yıldızı kaldırınca bu kategoriden çıkar. Yıldız bilgisi localStorage içinde saklanır.
+Şarkı, telefon müziği veya REC kaydı üzerindeki yıldız ya da kalp butonuna dokununca içerik **♥★ En Çok Beğendiklerim** kategorisine eklenir. Bu bölümde **♥ Kalpliler** ve **★ Yıldızlılar** filtreleri vardır. Kalp ve yıldız bilgileri localStorage içinde saklanır.
+
+## Çöp Kutusu nasıl çalışır?
+
+Uygulama içindeki normal silme işlemleri kayıtları ve telefon müziklerini hemen yok etmez; **Çöp Kutusu** kategorisine taşır. Çöp Kutusu'ndan geri alabilir veya kalıcı olarak silebilirsiniz. Web uygulamaları Android'in sistem çöp kutusuna doğrudan dosya taşıyamaz; bu çöp kutusu uygulama içinde kalıcı arşiv olarak çalışır.
 
 ## Kaydettiğim Şarkılar nasıl çalışır?
 
-Tüm Şarkılar veya Demolar içinde bir şarkıdaki **Kaydet** butonuna dokunun. Şarkı **Kaydettiğim Şarkılar** kategorisinde görünür. Tekrar dokunarak kaydedilenlerden çıkarabilirsiniz.
+Tüm Şarkılar içinde bir şarkıdaki **Kaydet** butonuna dokunun. Şarkı **Kaydettiğim Şarkılar** kategorisinde görünür. Tekrar dokunarak kaydedilenlerden çıkarabilirsiniz.
 
 ## Şarkı veya kayda not nasıl eklenir?
 
 Şarkı, telefon müziği veya REC kaydı kartındaki **Not ekle** butonuna dokunun. Not başlığı ve metni girin. Notlar **Kayıt Notlarım** kategorisinde listelenir. Notlar düzenlenebilir ve silinebilir. Notlar localStorage içinde saklanır.
-
-## Demo şarkılar nasıl eklenir?
-
-`songs` array içindeki bir şarkının `category` değerini `"demo"` yapın. İsterseniz `tags` içine `"demo"` da ekleyin. Bu şarkı **Demolar** kategorisinde görünür ve kartında küçük **Demo** etiketi çıkar.
 
 ## Mobilde ana ekrana nasıl eklenir?
 
