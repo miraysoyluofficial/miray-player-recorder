@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#08090f" />
+    <meta name="description" content="Miray Player Recorder mobil PWA müzik çalar ve ses kayıt uygulaması." />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Miray Player Recorder</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Miray Studio</p>
+          <h1>Miray Player Recorder</h1>
+        </div>
+        <div class="status-pill" id="installStatus">PWA hazır</div>
+      </header>
+
+      <main>
+        <section class="card player-card" aria-labelledby="playerTitle">
+          <div class="now-playing">
+            <img id="coverArt" src="covers/demo.svg" alt="Şarkı kapağı" />
+            <div class="track-meta">
+              <p class="section-label" id="playerTitle">MP3 Player</p>
+              <h2 id="trackTitle">Demo Song</h2>
+              <p id="trackArtist">Miray Soylu</p>
+            </div>
+          </div>
+
+          <div class="timeline">
+            <input id="progress" type="range" min="0" max="100" value="0" step="0.1" aria-label="Şarkı ilerleme çubuğu" />
+            <div class="time-row">
+              <span id="currentTime">0:00</span>
+              <span id="duration">0:00</span>
+            </div>
+          </div>
+
+          <div class="controls" aria-label="Müzik kontrolleri">
+            <button class="icon-button" id="prevBtn" type="button" aria-label="Önceki şarkı">‹</button>
+            <button class="play-button" id="playPauseBtn" type="button" aria-label="Oynat">▶</button>
+            <button class="icon-button" id="nextBtn" type="button" aria-label="Sonraki şarkı">›</button>
+          </div>
+
+          <label class="volume-control" for="volume">
+            <span>Ses</span>
+            <input id="volume" type="range" min="0" max="1" value="0.8" step="0.01" />
+          </label>
+
+          <div class="track-list" id="trackList" aria-label="Şarkı listesi"></div>
+        </section>
+
+        <section class="card recorder-card" aria-labelledby="recorderTitle">
+          <div class="card-heading">
+            <div>
+              <p class="section-label">Recorder</p>
+              <h2 id="recorderTitle">Ses Kaydı</h2>
+            </div>
+            <div class="record-timer" id="recordTimer">00:00</div>
+          </div>
+
+          <div class="recorder-actions">
+            <button class="record-button" id="recordBtn" type="button">● Record</button>
+            <button class="stop-button" id="stopBtn" type="button" disabled>Stop</button>
+          </div>
+
+          <p class="message" id="message" role="status" aria-live="polite">Kayıt için Record tuşuna dokun.</p>
+        </section>
+
+        <section class="card archive-card" aria-labelledby="archiveTitle">
+          <div class="card-heading">
+            <div>
+              <p class="section-label">Arşiv</p>
+              <h2 id="archiveTitle">Kayıtlarım</h2>
+            </div>
+            <span class="count-badge" id="recordingCount">0</span>
+          </div>
+          <div class="recordings-list" id="recordingsList"></div>
+        </section>
+      </main>
+    </div>
+
+    <audio id="audioPlayer" preload="none"></audio>
+    <script src="script.js"></script>
+  </body>
+</html>
