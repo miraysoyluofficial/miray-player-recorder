@@ -375,8 +375,7 @@ input[type="range"] {
 
 .controls {
   display: grid;
-  grid-template-columns: 64px 1fr 64px;
-  gap: 12px;
+  grid-template-columns: 1fr;
   align-items: center;
   margin: 18px 0;
 }
@@ -399,11 +398,12 @@ input[type="range"] {
   background: linear-gradient(135deg, var(--accent), var(--retro-amber));
   color: #160c0d;
   font-size: 1.45rem;
+  width: 100%;
 }
 
 .player-tools {
   display: grid;
-  grid-template-columns: 58px 1fr 58px 58px;
+  grid-template-columns: 58px 1fr 58px;
   gap: 10px;
   align-items: stretch;
   margin: -4px 0 16px;
@@ -440,16 +440,6 @@ input[type="range"] {
     linear-gradient(135deg, var(--retro-amber), var(--accent));
   font-size: 1.02rem;
   font-weight: 1000;
-}
-
-.share-current {
-  color: #190b12;
-  background:
-    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.55), transparent 2.2rem),
-    linear-gradient(135deg, var(--retro-rose), var(--retro-amber));
-  box-shadow:
-    0 0 22px rgba(255, 111, 145, 0.28),
-    0 15px 28px rgba(0, 0, 0, 0.28);
 }
 
 .volume-control {
@@ -1365,6 +1355,10 @@ input[type="range"] {
   grid-template-columns: 1fr 1fr;
 }
 
+.save-modal:not(.zip-modal) .modal-actions {
+  grid-template-columns: 1fr;
+}
+
 .modal-actions button {
   min-height: 50px;
   border-radius: 8px;
@@ -1450,7 +1444,7 @@ input[type="range"] {
   }
 
   .player-tools {
-    grid-template-columns: 50px 1fr 50px 50px;
+    grid-template-columns: 50px 1fr 50px;
     gap: 8px;
   }
 
