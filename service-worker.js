@@ -1,11 +1,11 @@
-const CACHE_NAME = "miray-player-recorder-v13";
+const CACHE_NAME = "miray-player-recorder-v16";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
-  "./style.css?v=12",
+  "./style.css?v=16",
   "./script.js",
-  "./script.js?v=12",
+  "./script.js?v=16",
   "./manifest.json",
   "./covers/demo.svg",
   "./covers/miray-night.svg",
